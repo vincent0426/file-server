@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+    backend:
+        container_name: cpj-backend
+        image: python:3.9
+        # restart: unless-stopped
+        command: sh -c "cd /app && pip install -r requirements.txt && pip install uvicorn && uvicorn main:app --host 0.0.0.0 --port 8000"
+        ports:
+            - 8000:8000
+        volumes:
+            - .:/app
+        env_file:
+            - .env
+        environment:
+            - TZ=Asia/Taipei
+        depends_on:
+            - db
+            - minio
+    db:
+        image: postgres
+        ports:
+            - 5432:5432
+        # run sql script to create database
+        # under sql folder
+        volumes:
+            - ./data:/var/lib/postgresql/data
+            - ./sql:/docker-entrypoint-initdb.d
+        environment:
+            POSTGRES_HOST: ${PG_HOST}
+            POSTGRES_PORT: ${PG_PORT}
+            POSTGRES_USER: ${PG_USERNAME}
+            POSTGRES_PASSWORD: ${PG_PASSWORD}
+            POSTGRES_DB: ${PG_DBNAME}
+            POSTGRES_MAX_POOL_SIZE: ${PG_MAX_POOL_SIZE}
+        env_file:
+            - .env
+    minio:
+        image: quay.io/minio/minio:latest
+        container_name: cpj-minio
+        ports:
+            - 9000:9000
+            - 9001:9001
+        volumes:
+            - ~/minio/data:/data
+        # restart: unless-stopped
+        environment:
+            MINIO_ROOT_USER: "minio123"
+            MINIO_ROOT_PASSWORD: "minio123456"
+        command: server /data --address ":9000" --console-address ":9001"
