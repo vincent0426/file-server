@@ -19,6 +19,6 @@ class Account:
 @dataclass
 class S3File:
     uuid: UUID
-    key: str
+    key: UUID
     bucket: str
 
