@@ -11,6 +11,7 @@ async def middleware(request: Request, call_next):
     account = None
     if auth_token := request.headers.get('auth-token', None):
         account = security.decode_jwt(auth_token, time=time)
+    print(f'account: {account}')
     context['account'] = account
     context['time'] = time
     return await call_next(request)
