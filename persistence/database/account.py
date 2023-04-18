@@ -10,7 +10,6 @@ from . import pool_handler
 import uuid
 
 async def add(username: str, password: str, pub_key: str) -> int:
-    print('add', pub_key)
     userID = uuid.uuid4()
     sql, params = pyformat2psql(
         sql=fr'INSERT INTO users'

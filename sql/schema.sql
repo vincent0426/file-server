@@ -13,13 +13,12 @@ CREATE TABLE "files" (
 CREATE TABLE "transactions" (
   "id" uuid UNIQUE PRIMARY KEY NOT NULL,
   "file_id" uuid,
-  "enc_sym" bytea,
-  "from" uuid,
-  "to" uuid
+  "from_uid" uuid,
+  "to_uid" uuid
 );
 
 ALTER TABLE "transactions" ADD FOREIGN KEY ("file_id") REFERENCES "files" ("id");
 
 ALTER TABLE "transactions" ADD FOREIGN KEY ("from") REFERENCES "users" ("id");
 
-ALTER TABLE "transactions" ADD FOREIGN KEY ("to") REFERENCES "users" ("id");
+ALTER TABLE "transactions" ADD FOREIGN KEY ("to_uid") REFERENCES "users" ("id");
