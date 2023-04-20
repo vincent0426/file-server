@@ -42,8 +42,8 @@ async def add_file(file: UploadFile = File(...)):
 
 # Get File from S3 with file_id and bucket_name
 @router.get("/file/{file_id}")
-async def get_file(file_id: uuid.UUID, bucket_name: str = 'enc-sym'):
-    obj_bytes = await s3_handler.download(key=str(file_id), bucket_name=bucket_name)
+async def get_file(file_id: uuid.UUID):
+    obj_bytes = await s3_handler.download(key=str(file_id), bucket_name='files')
 
     # Write object bytes to your directory
     # if upload app.enc, we will get file_id in directory
@@ -51,4 +51,9 @@ async def get_file(file_id: uuid.UUID, bucket_name: str = 'enc-sym'):
     # try with .png to see the image
     with open(f"{file_id}.enc", "wb") as f:
         f.write(obj_bytes)
+    
+    account = context['account']
+    enc_sym = await s3_handler.download(key=f'{file_id}/{account.id}', bucket_name='enc-sym')
+    with open(f"{file_id}-sym.enc", "wb") as f:
+        f.write(enc_sym)
     

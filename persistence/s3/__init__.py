@@ -43,11 +43,11 @@ class S3Handler(metaclass=mcs.Singleton):
             ExpiresIn=3600,
         )
 
-    async def upload(self, file: typing.IO, key: UUID, bucket_name: str = 'test'):
+    async def upload(self, file: typing.IO, key: UUID, bucket_name: str = 'files'):
         bucket = await self._resource.Bucket(bucket_name)
         await bucket.upload_fileobj(file, str(key))
         
-    async def download(self, key: str, bucket_name: str = 'test') -> bytes:
+    async def download(self, key: str, bucket_name: str = 'files') -> bytes:
         file_obj = io.BytesIO()
         await self._client.download_fileobj(bucket_name, key, file_obj)
         return file_obj.getvalue()
