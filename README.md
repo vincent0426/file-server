@@ -14,6 +14,17 @@ uvicorn main:app --reload
 
 go to localhost:8000/docs and you will see backend swagger
 
+## Docker
+
+```shell
+docker compose up
+
+docker compose down
+
+# rebuild
+docker compose up --build
+```
+
 ## Generate RSA keys
 
 ```shell
@@ -25,13 +36,17 @@ openssl rsa -in private_key.pem -pubout -out public_key.pem
 ls
 ```
 
-## Docker
+## Example
+1. Create two user A & B using POST /account
+2. Login A using POST /login
+3. Encrypt a file using pregenerated symmetric key
+3. Upload the file using GET /file
+4. Get the public key of B using GET /pub_key/{uid}
+5. Encrypt the symmetric key using B's public key
+6. Add the transaction using POST /transaction
+7. Login B using POST /login
+8. Get all the transaction using GET /transactions
+9. Get both the symmetric key and the file using GET /file/{file_id}
+10. Decrypt the symmetric key using B's private key
+11. Decrypt the file using the symmetric key
 
-```shell
-docker compose up
-
-docker compose down
-
-# rebuild
-docker compose up --build
-```
