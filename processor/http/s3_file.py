@@ -40,10 +40,10 @@ async def add_file(file: UploadFile = File(...)):
     return AddFileOutput(id=file_id)
 
 
-# Get File
+# Get File from S3 with file_id and bucket_name
 @router.get("/file/{file_id}")
-async def get_file(file_id: uuid.UUID):
-    obj_bytes = await s3_handler.download(str(file_id))
+async def get_file(file_id: uuid.UUID, bucket_name: str = 'enc-sym'):
+    obj_bytes = await s3_handler.download(key=str(file_id), bucket_name=bucket_name)
 
     # Write object bytes to your directory
     # if upload app.enc, we will get file_id in directory
