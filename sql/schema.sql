@@ -19,6 +19,6 @@ CREATE TABLE "transactions" (
 
 ALTER TABLE "transactions" ADD FOREIGN KEY ("file_id") REFERENCES "files" ("id");
 
-ALTER TABLE "transactions" ADD FOREIGN KEY ("from") REFERENCES "users" ("id");
+ALTER TABLE "transactions" ADD FOREIGN KEY ("from_uid") REFERENCES "users" ("id");
 
 ALTER TABLE "transactions" ADD FOREIGN KEY ("to_uid") REFERENCES "users" ("id");
