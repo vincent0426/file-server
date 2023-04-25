@@ -2,7 +2,7 @@ CREATE TABLE "users" (
   "id" uuid UNIQUE PRIMARY KEY NOT NULL,
   "username" varchar UNIQUE NOT NULL,
   "password" varchar NOT NULL,
-  "pub_key" text UNIQUE NOT NULL
+  "pub_key" text NOT NULL
 );
 
 CREATE TABLE "files" (
