@@ -5,3 +5,4 @@ private_key.*
 public_key.*
 venv
 __pycache__
+*.enc
