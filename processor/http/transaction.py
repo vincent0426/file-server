@@ -21,7 +21,6 @@ router = APIRouter(
 # Add Transaction
 class AddTransactionInput(BaseModel):
     file_id: uuid.UUID
-    enc_sym: UploadFile
     from_uid: uuid.UUID
     to_uid: uuid.UUID
 
@@ -33,13 +32,9 @@ class AddTransactionOutput:
 @router.post('/transaction')
 @enveloped
 async def add_transaction(file_id: uuid.UUID,
-                           to_uid: uuid.UUID,
-                           enc_sym: UploadFile = File(...)) -> AddTransactionOutput:
+                           to_uid: uuid.UUID) -> AddTransactionOutput:
     print(f'PostTransactionInput: {file_id}')
     account = context['account']
-    # Upload encrypted symmetric key to S3 first
-    # key should be file_id/to_uid
-    await s3_handler.upload(enc_sym, f'{file_id}/{to_uid}', 'enc-sym')
     transaction_id = await db.transaction.add(file_id, account.id, to_uid)
     print(f'PostTransactionOutput: {transaction_id}')
     return AddTransactionOutput(id=transaction_id)

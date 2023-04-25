@@ -25,6 +25,8 @@ router = APIRouter(
 
 class AddFileInput(BaseModel):
     file: UploadFile = File(...)
+    bucket_name: str
+    receiver_id: uuid.UUID = None
     
 
 @dataclass
@@ -33,27 +35,40 @@ class AddFileOutput:
 
 @router.post('/file')
 @enveloped
-async def add_file(file: UploadFile = File(...)):
-    account = context['account']
+async def add_file(file: UploadFile = File(...), bucket_name: str = 'files', receiver_id: uuid.UUID = None):
     file_id = str(uuid.uuid4())
-    await s3_handler.upload(file, file_id)
+    key = str(file_id)
+    
+    if(bucket_name != 'files' and receiver_id is None):
+        raise exc.BadRequestException("receiver_id is required for enc-sym files")
+    
+    if(bucket_name != 'files'):
+        key = f"{file_id}/{receiver_id}"
+        
+    await s3_handler.upload(file, key=key, bucket_name=bucket_name)
     return AddFileOutput(id=file_id)
 
 
+class GetFileInput(BaseModel):
+    file_id: uuid.UUID
+    bucket_name: str
+    
+
+@dataclass
+class GetFileOutput:
+    url: str
 # Get File from S3 with file_id and bucket_name
 @router.get("/file/{file_id}")
-async def get_file(file_id: uuid.UUID):
-    obj_bytes = await s3_handler.download(key=str(file_id), bucket_name='files')
-
-    # Write object bytes to your directory
-    # if upload app.enc, we will get file_id in directory
-    # we then add the suffix to the file_id
-    # try with .png to see the image
-    with open(f"{file_id}.enc", "wb") as f:
-        f.write(obj_bytes)
-    
+async def get_file(file_id: uuid.UUID, bucket_name: str = 'files'):
     account = context['account']
-    enc_sym = await s3_handler.download(key=f'{file_id}/{account.id}', bucket_name='enc-sym')
-    with open(f"{file_id}-sym.enc", "wb") as f:
-        f.write(enc_sym)
+    
+    filename = f"{file_id}.enc"
+    key = str(file_id)
+    
+    if(bucket_name != 'files'):
+        filename = f"{file_id}-sym.enc"
+        key = f"{file_id}/{account.id}"
+        
+    sign_url = await s3_handler.sign_url(key=key, bucket_name='files', filename=filename)
+    return GetFileOutput(url=sign_url)
     

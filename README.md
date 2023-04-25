@@ -40,13 +40,14 @@ ls
 1. Create two user A & B using POST /account
 2. Login A using POST /login
 3. Encrypt a file using pregenerated symmetric key
-3. Upload the file using GET /file
+3. Upload the encrypt file using POST /file
 4. Get the public key of B using GET /pub_key/{uid}
 5. Encrypt the symmetric key using B's public key
-6. Add the transaction using POST /transaction
-7. Login B using POST /login
-8. Get all the transaction using GET /transactions
-9. Get both the symmetric key and the file using GET /file/{file_id}
-10. Decrypt the symmetric key using B's private key
-11. Decrypt the file using the symmetric key
+6. Upload the encrypted symmetric key using POST /file (specify the bucket_name to enc-sym and receiver_id to B's uid)
+7. Add the transaction using POST /transaction (need to upload the receiver's encrypted symmetric key)
+8. Login B using POST /login
+9. Get all the transaction using GET /transactions
+10. Get both the symmetric key and the file using GET /file/{file_id}
+11. Decrypt the symmetric key using B's private key
+12. Decrypt the file using the symmetric key
 

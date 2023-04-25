@@ -32,11 +32,11 @@ class S3Handler(metaclass=mcs.Singleton):
         await self._client.close()
         await self._resource.close()
 
-    async def sign_url(self, bucket: str, key: str, filename: str) -> str:
+    async def sign_url(self, bucket_name: str, key: str, filename: str) -> str:
         return await self._client.generate_presigned_url(
             'get_object',
             Params={
-                'Bucket': bucket,
+                'Bucket': bucket_name,
                 'Key': key,
                 'ResponseContentDisposition': f"attachment; filename={filename};"
             },
