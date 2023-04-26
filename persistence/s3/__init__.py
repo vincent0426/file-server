@@ -4,6 +4,7 @@ from uuid import UUID
 
 from base import mcs
 from config import S3Config
+import exceptions as exc
 
 import io
 
@@ -33,6 +34,14 @@ class S3Handler(metaclass=mcs.Singleton):
         await self._resource.close()
 
     async def sign_url(self, bucket_name: str, key: str, filename: str) -> str:
+        try:
+            # check if the object exists
+            await self._client.head_object(Bucket=bucket_name, Key=key)
+        except Exception as e:
+            if e.response['Error']['Code'] == '404':
+                raise exc.NotFound
+            else:
+                raise exc.InternalServerError
         return await self._client.generate_presigned_url(
             'get_object',
             Params={
