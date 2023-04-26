@@ -36,3 +36,47 @@ async def get(transaction_id: uuid.UUID) -> dict:
     )
     transaction = await pool_handler.pool.fetchrow(sql, *params)
     return dict(transaction)
+
+async def is_sender(transaction_id: uuid.UUID, uid: uuid.UUID) -> bool:
+    sql, params = pyformat2psql(
+        sql=fr"SELECT id"
+            fr" FROM transactions"
+            fr" WHERE id = %(transaction_id)s AND from_uid = %(uid)s",
+        transaction_id=transaction_id, uid=uid
+    )
+    transaction = await pool_handler.pool.fetchrow(sql, *params)
+    # print("is_sender", bool(transaction))
+    return bool(transaction)
+
+async def is_receiver(transaction_id: uuid.UUID, uid: uuid.UUID) -> bool:
+    sql, params = pyformat2psql(
+        sql=fr"SELECT id"
+            fr" FROM transactions"
+            fr" WHERE id = %(transaction_id)s AND to_uid = %(uid)s",
+        transaction_id=transaction_id, uid=uid
+    )
+    transaction = await pool_handler.pool.fetchrow(sql, *params)
+    # print("is_receiver", bool(transaction))
+    return bool(transaction)
+
+async def is_file_sender(fid: uuid.UUID, uid: uuid.UUID) -> bool:
+    sql, params = pyformat2psql(
+        sql=fr"SELECT id"
+            fr" FROM transactions"
+            fr" WHERE file_id = %(fid)s AND from_uid = %(uid)s",
+        fid=fid, uid=uid
+    )
+    transaction = await pool_handler.pool.fetchrow(sql, *params)
+    # print("is_sender", bool(transaction))
+    return bool(transaction)
+
+async def is_file_receiver(fid: uuid.UUID, uid: uuid.UUID) -> bool:
+    sql, params = pyformat2psql(
+        sql=fr"SELECT id"
+            fr" FROM transactions"
+            fr" WHERE file_id = %(fid)s AND to_uid = %(uid)s",
+        fid=fid, uid=uid
+    )
+    transaction = await pool_handler.pool.fetchrow(sql, *params)
+    # print("is_receiver", bool(transaction))
+    return bool(transaction)

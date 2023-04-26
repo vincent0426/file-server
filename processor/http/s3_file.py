@@ -3,6 +3,7 @@ from fastapi import Form, UploadFile, File
 from fastapi import Request
 from fastapi import APIRouter, responses, Depends
 from fastapi.responses import StreamingResponse
+from fastapi import HTTPException
 
 from pydantic import BaseModel
 from fastapi.responses import StreamingResponse
@@ -23,52 +24,53 @@ router = APIRouter(
 )
 
 
-class AddFileInput(BaseModel):
-    file: UploadFile = File(...)
-    bucket_name: str
-    receiver_id: uuid.UUID = None
+# class AddFileInput(BaseModel):
+#     file: UploadFile = File(...)
     
 
-@dataclass
-class AddFileOutput:
-    id: uuid.UUID
+# @dataclass
+# class AddFileOutput:
+#     id: uuid.UUID
 
-@router.post('/file')
-@enveloped
-async def add_file(file: UploadFile = File(...), bucket_name: str = 'files', receiver_id: uuid.UUID = None):
-    file_id = str(uuid.uuid4())
-    key = str(file_id)
-    
-    if(bucket_name != 'files' and receiver_id is None):
-        raise exc.BadRequestException("receiver_id is required for enc-sym files")
-    
-    if(bucket_name != 'files'):
-        key = f"{file_id}/{receiver_id}"
+# @router.post('/file')
+# @enveloped
+# async def add_file(file: UploadFile = File(...)):
+#     file_id = str(uuid.uuid4())
+#     key = str(file_id)
         
-    await s3_handler.upload(file, key=key, bucket_name=bucket_name)
-    return AddFileOutput(id=file_id)
+#     await s3_handler.upload(file, key=key)
+#     return AddFileOutput(id=file_id)
 
 
 class GetFileInput(BaseModel):
     file_id: uuid.UUID
-    bucket_name: str
     
 
 @dataclass
 class GetFileOutput:
-    url: str
-# Get File from S3 with file_id and bucket_name
+    enc_file: str
+    enc_sym: str
+
 @router.get("/file/{file_id}")
-async def get_file(file_id: uuid.UUID, bucket_name: str = 'files'):
+async def get_file(file_id: uuid.UUID):
     account = context['account']
+    # if no account, raise 401
+    if not account:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    # Only the owner of the file can get the file
+    if not await db.transaction.is_file_sender(file_id, account.id) and not await db.transaction.is_file_receiver(file_id, account.id):
+        raise HTTPException(status_code=403, detail="No permission")
     
     filename = f"{file_id}.enc"
+    enc_sym_filename = f"{file_id}-sym.enc"
     key = str(file_id)
     
-    if(bucket_name != 'files'):
-        filename = f"{file_id}-sym.enc"
-        key = f"{file_id}/{account.id}"
-        
-    sign_url = await s3_handler.sign_url(key=key, bucket_name='files', filename=filename)
-    return GetFileOutput(url=sign_url)
-    
+    try:
+        file_sign_url = await s3_handler.sign_url(key=key, filename=filename, bucket_name='files')
+        enc_sym_sign_url = await s3_handler.sign_url(key=key, filename=enc_sym_filename, bucket_name='symmetric-keys')
+    except exc.NotFound:
+        raise HTTPException(status_code=404, detail="File not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    return GetFileOutput(enc_file=file_sign_url, enc_sym=enc_sym_sign_url)
