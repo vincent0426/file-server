@@ -50,3 +50,8 @@ class IllegalInput(Exception):
     """
     Input is not legal
     """
+
+class InternalServerError(Exception):
+    """
+    Internal Server Error
+    """
