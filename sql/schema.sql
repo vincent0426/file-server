@@ -5,19 +5,12 @@ CREATE TABLE "users" (
   "pub_key" text NOT NULL
 );
 
-CREATE TABLE "files" (
-  "id" uuid UNIQUE PRIMARY KEY NOT NULL,
-  "content" bytea
-);
-
 CREATE TABLE "transactions" (
   "id" uuid UNIQUE PRIMARY KEY NOT NULL,
   "file_id" uuid,
   "from_uid" uuid,
   "to_uid" uuid
 );
-
-ALTER TABLE "transactions" ADD FOREIGN KEY ("file_id") REFERENCES "files" ("id");
 
 ALTER TABLE "transactions" ADD FOREIGN KEY ("from_uid") REFERENCES "users" ("id");
 
