@@ -8,7 +8,6 @@ from fastapi import UploadFile
 
 async def add(file_id: uuid.UUID, from_uid: uuid.UUID, to_uid: uuid.UUID) -> uuid.UUID:
     t_id = uuid.uuid4()
-    print(f'AddTransaction: {t_id} {file_id} {from_uid} {to_uid}')
     sql, params = pyformat2psql(
         sql=fr"INSERT INTO transactions (id, file_id, from_uid, to_uid)"
             fr" VALUES (%(t_id)s, %(file_id)s, %(from_uid)s, %(to_uid)s)"
@@ -27,3 +26,13 @@ async def get_all(to_uid: uuid.UUID) -> list:
     )
     transactions = await pool_handler.pool.fetch(sql, *params)
     return transactions
+
+async def get(transaction_id: uuid.UUID) -> dict:
+    sql, params = pyformat2psql(
+        sql=fr"SELECT id, file_id, from_uid, to_uid"
+            fr" FROM transactions"
+            fr" WHERE id = %(transaction_id)s",
+        transaction_id=transaction_id
+    )
+    transaction = await pool_handler.pool.fetchrow(sql, *params)
+    return dict(transaction)
