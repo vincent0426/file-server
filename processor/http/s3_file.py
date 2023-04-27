@@ -16,6 +16,7 @@ import uuid
 from base import do
 
 from starlette_context import context
+from config import AppConfig
 
 router = APIRouter(
     tags=['Files'],
@@ -61,13 +62,18 @@ async def get_file(file_id: uuid.UUID):
     if not await db.transaction.is_file_sender(file_id, account.id) and not await db.transaction.is_file_receiver(file_id, account.id):
         raise HTTPException(status_code=403, detail="No permission")
     
-    filename = f"{file_id}.enc"
+    
+    filename = await db.transaction.get_filename(file_id)
     enc_sym_filename = f"{file_id}-sym.enc"
     key = str(file_id)
     
     try:
         file_sign_url = await s3_handler.sign_url(key=key, filename=filename, bucket_name='files')
         enc_sym_sign_url = await s3_handler.sign_url(key=key, filename=enc_sym_filename, bucket_name='symmetric-keys')
+        # http://minio:9000/files/0f100bf7-93b1-4cf9-ab90-bc2815925113?response-content-disposition=attachment%3B%20filename%3Dmyfile.enc%3B&AWSAccessKeyId=4uHVftjkEQF1w3TZ&Signature=VhQj9Tv9eeSMyqZRTOzKUsMdCTw%3D&Expires=1682622783
+        # replace the minio to localhost
+        file_sign_url = file_sign_url.replace('minio', AppConfig.domain)
+        enc_sym_sign_url = enc_sym_sign_url.replace('minio', AppConfig.domain)
     except exc.NotFound:
         raise HTTPException(status_code=404, detail="File not found")
     except Exception as e:

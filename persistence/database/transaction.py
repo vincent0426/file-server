@@ -6,20 +6,20 @@ import uuid
 
 from fastapi import UploadFile
 
-async def add(file_id: uuid.UUID, from_uid: uuid.UUID, to_uid: uuid.UUID) -> uuid.UUID:
+async def add(file_id: uuid.UUID, filename: str, from_uid: uuid.UUID, to_uid: uuid.UUID) -> uuid.UUID:
     t_id = uuid.uuid4()
     sql, params = pyformat2psql(
-        sql=fr"INSERT INTO transactions (id, file_id, from_uid, to_uid)"
-            fr" VALUES (%(t_id)s, %(file_id)s, %(from_uid)s, %(to_uid)s)"
+        sql=fr"INSERT INTO transactions (id, file_id, filename, from_uid, to_uid)"
+            fr" VALUES (%(t_id)s, %(file_id)s, %(filename)s, %(from_uid)s, %(to_uid)s)"
             fr" RETURNING id",
-        t_id=t_id, file_id=file_id, from_uid=from_uid, to_uid=to_uid
+        t_id=t_id, file_id=file_id, filename=filename, from_uid=from_uid, to_uid=to_uid
     )
     t_id = await pool_handler.pool.fetchval(sql, *params)
     return t_id
 
 async def get_all(to_uid: uuid.UUID) -> list:
     sql, params = pyformat2psql(
-        sql=fr"SELECT id, file_id, from_uid, to_uid"
+        sql=fr"SELECT id, file_id, filename, from_uid, to_uid"
             fr" FROM transactions"
             fr" WHERE to_uid = %(to_uid)s",
         to_uid=to_uid
@@ -29,13 +29,23 @@ async def get_all(to_uid: uuid.UUID) -> list:
 
 async def get(transaction_id: uuid.UUID) -> dict:
     sql, params = pyformat2psql(
-        sql=fr"SELECT id, file_id, from_uid, to_uid"
+        sql=fr"SELECT id, file_id, filename, from_uid, to_uid"
             fr" FROM transactions"
             fr" WHERE id = %(transaction_id)s",
         transaction_id=transaction_id
     )
     transaction = await pool_handler.pool.fetchrow(sql, *params)
     return dict(transaction)
+
+async def get_filename(file_id: uuid.UUID) -> str:
+    sql, params = pyformat2psql(
+        sql=fr"SELECT filename"
+            fr" FROM transactions"
+            fr" WHERE file_id = %(file_id)s",
+        file_id=file_id
+    )
+    filename = await pool_handler.pool.fetchval(sql, *params)
+    return filename
 
 async def is_sender(transaction_id: uuid.UUID, uid: uuid.UUID) -> bool:
     sql, params = pyformat2psql(

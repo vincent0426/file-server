@@ -43,13 +43,13 @@ async def add_transaction(to_uid: uuid.UUID,
     
     fid = str(uuid.uuid4())
     key = str(fid)
-    
     # Upload file to S3
     await s3_handler.upload(file, key=key, bucket_name='files')
     # Upload encrypted symmetric key to S3
     await s3_handler.upload(enc_sym, key=key, bucket_name='symmetric-keys')
     
-    transaction_id = await db.transaction.add(fid, account.id, to_uid)
+    filename = file.filename
+    transaction_id = await db.transaction.add(fid, filename, account.id, to_uid)
     return AddTransactionOutput(id=transaction_id)
 
 

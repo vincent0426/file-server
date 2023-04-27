@@ -8,6 +8,7 @@ CREATE TABLE "users" (
 CREATE TABLE "transactions" (
   "id" uuid UNIQUE PRIMARY KEY NOT NULL,
   "file_id" uuid,
+  "filename" varchar,
   "from_uid" uuid,
   "to_uid" uuid
 );
