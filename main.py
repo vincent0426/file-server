@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import app_config
 
 app = FastAPI(
+    domain=app_config.domain,
     title=app_config.title,
     docs_url=app_config.docs_url,
     redoc_url=app_config.redoc_url,

@@ -21,6 +21,7 @@ class DBConfig:
 
 
 class AppConfig:
+    domain = env_values.get('DOMAIN')
     title = env_values.get('APP_TITLE')
     docs_url = env_values.get('APP_DOCS_URL', None)
     redoc_url = env_values.get('APP_REDOC_URL', None)
