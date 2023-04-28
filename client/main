@@ -1,0 +1,260 @@
+#!/usr/bin/env python3
+
+import configparser
+import base64
+import requests
+from prettytable import PrettyTable
+import os
+import sys
+import subprocess
+from uuid import UUID
+import getpass
+import urllib.request as downloader
+
+usage = """
+File Server Client
+This command is file server client implementation written in python script.
+There are two modes to choose from:
+
+I. upload transaction to file server:
+usage: ./main --upload --user <user-id> <filename>
+
+II. download transaction from file server:
+usage: ./main --download
+
+Note: You will have to register an account first, if you haven't login, 
+      this command will ask you to login first.
+"""
+
+
+class LocalFilePath:
+    root: str = os.path.expanduser('~/.fileserver')
+
+    @property
+    def private_key(self):
+        return os.path.join(self.root, 'private_key.pem')
+
+    @property
+    def public_key(self):
+        return os.path.join(self.root, 'public_key.pem')
+
+    @property
+    def userinfo(self):
+        return os.path.join(self.root, '.userinfo')
+
+    def encrypt_file(self, filename):
+        return os.path.join(self.root, f'{filename}')
+
+    @property
+    def sym_key(self):
+        return os.path.join(self.root, 'sym.pem')
+
+    @property
+    def enc_sym_key(self):
+        return os.path.join(self.root, 'enc_sym.key')
+
+    def clear_root(self):
+        preserve_file = ['.userinfo', 'private_key.pem', 'public_key.pem']
+        filenames = [filename for filename in os.listdir(self.root) if filename not in preserve_file]
+        for filename in filenames:
+            run_command(f'rm -rf {self.root}/{filename}')
+
+
+class RequestHandler:
+    def __init__(self, server_url):
+        self.url = server_url
+        self.token = None
+
+    def login(self, config: configparser.ConfigParser):
+        username = config.get('user', 'username')
+        password = config.get('user', 'password')
+        res = self.post('/login', json={'username': username, 'password': password})
+        self.token = res.json()['data']['token']
+        return res
+
+    def post(self, endpoint: str, data: dict = None, files: dict = None, json: dict = None):
+        return requests.post(
+            f'{self.url}{endpoint}',
+            headers={'auth-token': self.token},
+            data=data,
+            files=files,
+            json=json,
+        )
+
+    def get(self, endpoint: str):
+        return requests.get(
+            f'{self.url}{endpoint}',
+            headers={'auth-token': self.token},
+        )
+
+    def set_token(self, token: str):
+        self.token = token
+
+
+def run_command(command: str, communicate: bool = True) -> None:
+    if communicate:
+        subprocess.Popen(command.split()).communicate()
+    else:
+        subprocess.Popen(command.split())
+
+
+def input_with_err_handling(__prompt: str, error_message: str):
+    while True:
+        inp = input(__prompt)
+        if inp:
+            return inp
+        if error_message:
+            print(error_message)
+
+
+args = sys.argv[1:]
+upload = False
+download = False
+filename = ''
+user_id = None
+while args:
+    if args[0] == '--help':
+        print(usage)
+    if args[0] == '--upload':
+        upload = True
+        args.pop(0)
+    elif args[0] == '--download':
+        download = True
+        args.pop(0)
+    elif args[0] == '--user':
+        args.pop(0)
+        user_id = args[0]
+        args.pop(0)
+    else:
+        filename = args[0]
+        break
+
+filepath = LocalFilePath()
+if not os.path.exists(filepath.root):
+    input_filepath = input('set your config directory [~/.fileserver]:') or filepath.root
+    filepath.root = os.path.expanduser(input_filepath)
+    if not os.path.exists(filepath.root):
+        os.mkdir(filepath.root)
+
+filenames = os.listdir(filepath.root)
+if 'private_key.pem' not in filenames or 'public_key.pem' not in filenames:
+    run_command(f'openssl genrsa -out {filepath.private_key} 2048')
+    run_command(f'openssl rsa -in {filepath.private_key} -pubout -out {filepath.public_key}')
+
+config = configparser.ConfigParser()
+request_handler = RequestHandler(server_url='http://localhost:8000')
+if not os.path.exists(filepath.userinfo):
+    print('Register your account:')
+    username = input_with_err_handling('Username: ', 'Invalid username')
+    password = getpass.getpass('Password: ')
+
+    response = request_handler.post(
+        '/account',
+        data={'username': username, 'password': password},
+        files={'pub_key': open(filepath.public_key)}
+    )
+    data, error = response.json()['data'], response.json()['error']
+    if error:
+        print(usage)
+        filepath.clear_root()
+        exit(1)
+    user_id = data['id']
+    config.add_section('user')
+    config.set('user', 'username', username)
+    config.set('user', 'password', password)
+    config.set('user', 'id', user_id)
+    with open(filepath.userinfo, 'w') as file:
+        config.write(file)
+
+config.read(filepath.userinfo)
+auth_token = config.get('user', 'auth_token', fallback=None)
+request_handler.set_token(auth_token)
+if not auth_token:
+    response = request_handler.login(config)
+    auth_token = response.json()['data']['token']
+    config.set('user', 'auth_token', auth_token)
+    with open(filepath.userinfo, 'w') as file:
+        config.write(file)
+if upload and download:
+    print(usage)
+    filepath.clear_root()
+    exit(1)
+
+if upload:
+    if not filename or not user_id:
+        print(usage)
+        filepath.clear_root()
+        exit(1)
+
+    # generate sym key
+    sym_key, _ = subprocess.Popen(
+        ['openssl', 'rand', '-base64', '32'],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE).communicate()
+
+    sym_key = sym_key.decode('utf-8')
+
+    # encrypt file
+    run_command(f'openssl enc -aes-256-cbc -salt -in {filename} -out {filepath.encrypt_file(filename)}'
+                f' -pass pass:{sym_key}')
+
+    # get receiver's public key
+    res = request_handler.get(f'/pub_key/{user_id}')
+    base64_user_pubkey = res.json()['data']['pub_key']
+    user_pubkey = base64.b64decode(base64_user_pubkey)
+    with open('user_pub.pem', 'wb') as file:
+        file.write(user_pubkey)
+    with open('sym.pem', 'wb') as file:
+        file.write(sym_key.encode())
+
+    # encrypt symmetric key with receiver's public key
+    run_command(f'openssl pkeyutl -encrypt -pubin -inkey user_pub.pem -in sym.pem -out {filepath.enc_sym_key}')
+
+    # upload transaction
+    res = request_handler.post(
+        f'/transaction?to_uid={user_id}',
+        files={'file': open(filepath.encrypt_file(filename), 'rb'), 'enc_sym': open(filepath.enc_sym_key, 'rb')}
+    )
+
+
+if download:
+    # get user's all transaction
+    res = request_handler.get('/transactions')
+    transactions: list[dict] = res.json()['transactions']
+    if not transactions:
+        print("You don't have any transactions yet.")
+        exit(0)
+    transactions_dict = {transaction['id']: transaction for transaction in transactions}
+    table = PrettyTable()
+    table.field_names = transactions[0].keys()
+    for transaction in transactions:
+        table.add_row(transaction.values())
+    print('your transactions:')
+    print(table)
+    transaction_id = input_with_err_handling('transaction id you want to receive: ', 'Invalid transaction id').strip()
+    try:
+        UUID(transaction_id)
+    except ValueError:
+        print('Invalid transaction id')
+        exit(1)
+    transaction = transactions_dict[transaction_id]
+    filename = transaction['filename']
+
+    # get file url and download
+    res = request_handler.get(f'/file/{transaction["file_id"]}')
+    downloader.urlretrieve(res.json()['enc_file'], filepath.encrypt_file(filename))
+    downloader.urlretrieve(res.json()['enc_sym'], filepath.enc_sym_key)
+
+    # decrypt encrypted symmetric key with receiver's private key
+    run_command(f'openssl pkeyutl -decrypt -inkey {filepath.private_key} -in {filepath.enc_sym_key} -out {filepath.sym_key}')
+    with open(filepath.sym_key, 'rb') as file:
+        sym_key = file.read().decode('utf-8')
+
+    # decrypt encrypted file with decrypted symmetric key
+    p6 = subprocess.Popen(['openssl', 'enc', '-aes-256-cbc', '-d', '-salt',
+                           '-in', filepath.encrypt_file(filename), '-out',
+                           filename.replace('.enc', ""),
+                           '-pass', f'pass:{sym_key}'])
+    p6.wait()
+    filepath.clear_root()
+    print(f"Your transaction had been downloaded, filename is: {filename.replace('.enc', '')}")
