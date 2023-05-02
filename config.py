@@ -48,6 +48,10 @@ class S3Config:
     endpoint = env_values.get('S3_ENDPOINT')
     access_key = env_values.get('S3_ACCESS_KEY')
     secret_key = env_values.get('S3_SECRET_KEY')
+    region = env_values.get('S3_REGION')
+    
+    files_bucket = env_values.get('S3_FILES_BUCKET')
+    symmetric_keys_bucket = env_values.get('S3_SYMMETRIC_KEYS_BUCKET')
 
 
 db_config = DBConfig()

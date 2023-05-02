@@ -17,6 +17,7 @@ from base import do
 
 from starlette_context import context
 from config import AppConfig
+from config import S3Config
 
 router = APIRouter(
     tags=['Files'],
@@ -68,8 +69,8 @@ async def get_file(file_id: uuid.UUID):
     key = str(file_id)
     
     try:
-        file_sign_url = await s3_handler.sign_url(key=key, filename=filename, bucket_name='files')
-        enc_sym_sign_url = await s3_handler.sign_url(key=key, filename=enc_sym_filename, bucket_name='symmetric-keys')
+        file_sign_url = await s3_handler.sign_url(key=key, filename=filename, bucket_name=S3Config.files_bucket)
+        enc_sym_sign_url = await s3_handler.sign_url(key=key, filename=enc_sym_filename, bucket_name=S3Config.symmetric_keys_bucket)
         # replace the first minio with the domain
         file_sign_url = file_sign_url.replace('minio', AppConfig.domain, 1)
         enc_sym_sign_url = enc_sym_sign_url.replace('minio', AppConfig.domain, 1)
