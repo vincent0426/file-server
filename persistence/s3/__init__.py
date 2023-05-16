@@ -20,6 +20,7 @@ class S3Handler(metaclass=mcs.Singleton):
             endpoint_url=s3_config.endpoint,
             aws_access_key_id=s3_config.access_key,
             aws_secret_access_key=s3_config.secret_key,
+            region_name=s3_config.region
         ).__aenter__()
 
         self._resource = await self._session.resource(
@@ -27,6 +28,7 @@ class S3Handler(metaclass=mcs.Singleton):
             endpoint_url=s3_config.endpoint,
             aws_access_key_id=s3_config.access_key,
             aws_secret_access_key=s3_config.secret_key,
+            region_name=s3_config.region
         ).__aenter__()
 
     async def close(self):
@@ -52,11 +54,11 @@ class S3Handler(metaclass=mcs.Singleton):
             ExpiresIn=3600,
         )
 
-    async def upload(self, file: typing.IO, key: UUID, bucket_name: str = 'files'):
+    async def upload(self, file: typing.IO, key: UUID, bucket_name: str):
         bucket = await self._resource.Bucket(bucket_name)
         await bucket.upload_fileobj(file, str(key))
         
-    async def download(self, key: str, bucket_name: str = 'files') -> bytes:
+    async def download(self, key: str, bucket_name: str) -> bytes:
         file_obj = io.BytesIO()
         await self._client.download_fileobj(bucket_name, key, file_obj)
         return file_obj.getvalue()

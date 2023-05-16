@@ -13,6 +13,8 @@ import uuid
 
 from starlette_context import context
 
+from config import S3Config
+
 router = APIRouter(
     tags=['Transaction'],
     default_response_class=responses.JSONResponse,
@@ -44,9 +46,9 @@ async def add_transaction(to_uid: uuid.UUID,
     fid = str(uuid.uuid4())
     key = str(fid)
     # Upload file to S3
-    await s3_handler.upload(file, key=key, bucket_name='files')
+    await s3_handler.upload(file, key=key, bucket_name=S3Config.files_bucket)
     # Upload encrypted symmetric key to S3
-    await s3_handler.upload(enc_sym, key=key, bucket_name='symmetric-keys')
+    await s3_handler.upload(enc_sym, key=key, bucket_name=S3Config.symmetric_keys_bucket)
     
     filename = file.filename
     transaction_id = await db.transaction.add(fid, filename, account.id, to_uid)
