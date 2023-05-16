@@ -24,7 +24,7 @@ class GetPubKeyOutput:
     pub_key: str
 
 
-@router.get('/pub_key/{id}')
+@router.get('/pub_key/{uid}')
 @enveloped
 async def get_pub_key(uid: str) -> GetPubKeyOutput:
     print(f'GetPubKeyInput: {uid}')
