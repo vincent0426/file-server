@@ -22,9 +22,6 @@ usage: ./main --upload --user <user-id> <filename>
 II. download transaction from file server:
 usage: ./main --download
 
-III. get user id:
-usage: ./main --get-id
-
 Note: You will have to register an account first, if you haven't login, 
       this command will ask you to login first.
 """
@@ -115,7 +112,6 @@ upload = False
 download = False
 filename = ''
 user_id = None
-get_user_id = False
 while args:
     if args[0] == '--help':
         print(usage)
@@ -129,9 +125,6 @@ while args:
         args.pop(0)
         user_id = args[0]
         args.pop(0)
-    elif args[0] == '--get-id':
-        get_user_id = True
-        break
     else:
         filename = args[0]
         break
@@ -182,11 +175,6 @@ if not auth_token:
     config.set('user', 'auth_token', auth_token)
     with open(filepath.userinfo, 'w') as file:
         config.write(file)
-
-if get_user_id:
-    print(config.get('user', 'id', fallback=None))
-    exit(0)
-
 if upload and download:
     print(usage)
     filepath.clear_root()
@@ -227,8 +215,6 @@ if upload:
         f'/transaction?to_uid={user_id}',
         files={'file': open(filepath.encrypt_file(filename), 'rb'), 'enc_sym': open(filepath.enc_sym_key, 'rb')}
     )
-    run_command('rm -rf user_pub.pem')
-    run_command('rm -rf sym.pem')
 
 
 if download:
@@ -263,17 +249,12 @@ if download:
     run_command(f'openssl pkeyutl -decrypt -inkey {filepath.private_key} -in {filepath.enc_sym_key} -out {filepath.sym_key}')
     with open(filepath.sym_key, 'rb') as file:
         sym_key = file.read().decode('utf-8')
-        print(sym_key)
-
 
     # decrypt encrypted file with decrypted symmetric key
-    command = ['openssl', 'enc', '-aes-256-cbc', '-d', '-salt',
-               '-in', filepath.encrypt_file(filename), '-out',
-               filename.replace('.enc', ""),
-               '-pass', f'pass:{sym_key}']
-    # print(' '.join(command))
-    # p6 = subprocess.Popen(command)
-    # p6.wait()
-    run_command(' '.join(command))
-    # filepath.clear_root()
+    p6 = subprocess.Popen(['openssl', 'enc', '-aes-256-cbc', '-d', '-salt',
+                           '-in', filepath.encrypt_file(filename), '-out',
+                           filename.replace('.enc', ""),
+                           '-pass', f'pass:{sym_key}'])
+    p6.wait()
+    filepath.clear_root()
     print(f"Your transaction had been downloaded, filename is: {filename.replace('.enc', '')}")
