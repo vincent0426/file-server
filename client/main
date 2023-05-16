@@ -215,6 +215,8 @@ if upload:
         f'/transaction?to_uid={user_id}',
         files={'file': open(filepath.encrypt_file(filename), 'rb'), 'enc_sym': open(filepath.enc_sym_key, 'rb')}
     )
+    run_command('rm -rf user_pub.pem')
+    run_command('rm -rf sym.pem')
 
 
 if download:
@@ -249,12 +251,17 @@ if download:
     run_command(f'openssl pkeyutl -decrypt -inkey {filepath.private_key} -in {filepath.enc_sym_key} -out {filepath.sym_key}')
     with open(filepath.sym_key, 'rb') as file:
         sym_key = file.read().decode('utf-8')
+        print(sym_key)
+
 
     # decrypt encrypted file with decrypted symmetric key
-    p6 = subprocess.Popen(['openssl', 'enc', '-aes-256-cbc', '-d', '-salt',
-                           '-in', filepath.encrypt_file(filename), '-out',
-                           filename.replace('.enc', ""),
-                           '-pass', f'pass:{sym_key}'])
-    p6.wait()
-    filepath.clear_root()
+    command = ['openssl', 'enc', '-aes-256-cbc', '-d', '-salt',
+               '-in', filepath.encrypt_file(filename), '-out',
+               filename.replace('.enc', ""),
+               '-pass', f'pass:{sym_key}']
+    # print(' '.join(command))
+    # p6 = subprocess.Popen(command)
+    # p6.wait()
+    run_command(' '.join(command))
+    # filepath.clear_root()
     print(f"Your transaction had been downloaded, filename is: {filename.replace('.enc', '')}")
