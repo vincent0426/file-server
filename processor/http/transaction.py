@@ -35,9 +35,8 @@ class AddTransactionOutput:
 @router.post('/transaction')
 @enveloped
 async def add_transaction(to_uid: uuid.UUID,
-                            file: UploadFile = File(...),
-                            enc_sym: UploadFile = File(...)) -> AddTransactionOutput:
-    
+                          file: UploadFile = File(...),
+                          enc_sym: UploadFile = File(...)) -> AddTransactionOutput:
     account = context['account']
     # If no account, raise 401
     if not account:
@@ -49,7 +48,6 @@ async def add_transaction(to_uid: uuid.UUID,
     await s3_handler.upload(file, key=key, bucket_name=S3Config.files_bucket)
     # Upload encrypted symmetric key to S3
     await s3_handler.upload(enc_sym, key=key, bucket_name=S3Config.symmetric_keys_bucket)
-    
     filename = file.filename
     transaction_id = await db.transaction.add(fid, filename, account.id, to_uid)
     return AddTransactionOutput(id=transaction_id)
