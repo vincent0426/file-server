@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
     backend:
-        container_name: cpj-backend
+        container_name: file-server-backend
         image: python:3.9
         restart: unless-stopped
         command: sh -c "cd /app && pip install -r requirements.txt && pip install uvicorn && uvicorn main:app --host 0.0.0.0 --port 8000"
@@ -18,7 +18,8 @@ services:
             - db
             - minio
     db:
-        image: postgres
+        container_name: file-server-db
+        image: postgres:13-alpine
         ports:
             - 5432:5432
         # run sql script to create database
@@ -37,7 +38,7 @@ services:
             - .env
     minio:
         image: quay.io/minio/minio:latest
-        container_name: cpj-minio
+        container_name: file-server-minio
         ports:
             - 9000:9000
             - 9001:9001
