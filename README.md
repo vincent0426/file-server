@@ -1,52 +1,44 @@
+# File Server
+A file server implemented in Python, while the server doesn't know the content of the files.
+
+## Set up
+### Backend Server
+1. Fill in the environment variables in the `.env` file.
+    ```shell
+    cp .env.example .env
+    # Fill in variables
+    ```
+2. Start backend service.
+    ```shell
+    docker-compose up -d
+    ```
+
+### Client
+**Note: Client CLI is in `client/`**
+
+Client CLI is implemented in Python, and the program doesn't require any setup besides installing `prettytable` package and `openssl` are installed in your system environment, you may install it directly or in the environment you prefer, for example:
 ```shell
-conda create --name backend python=3.9
-conda activate backend
-pip install -r requirements.txt
-cp .env.example .env
+pip install prettytable
 ```
-
-paste environment variables
-
-```shell
-pip install uvicorn
-uvicorn main:app --reload
-```
-
-go to localhost:8000/docs and you will see backend swagger
-
-## Docker
-
-```shell
-docker compose up
-
-docker compose down
-
-# rebuild
-docker compose up --build
-```
-
-## Generate RSA keys
-
-```shell
-openssl genrsa -out private_key.pem 2048
-
-openssl rsa -in private_key.pem -pubout -out public_key.pem
-
-# you should see private_key.pem and public_key.pem
-ls
-```
-
-## Example
-1. Create two user A & B using POST /account
-2. Login A using POST /login
-3. Encrypt a file using pregenerated symmetric key
-4. Get the public key of B using GET /pub_key/{uid}
-5. Encrypt the symmetric key using B's public key
-6. Add the transaction using POST /transaction (need to upload the receiver's encrypted symmetric key and the encrypted file)
-7. Login B using POST /login
-8. Get all the transaction using GET /transactions
-9. Get the file_id from the transaction using GET /transaction/{transaction_id}
-10. Get both the symmetric key and the file using GET /file/{file_id}
-11. Decrypt the symmetric key using B's private key
-12. Decrypt the file using the symmetric key
-
+#### Usage:
+1. Login / Register
+    ```shell
+    ./main
+    ```
+    1. If you haven't set up configuration in your local environment, you will be required to specify the configuration directory, default is set `~/.fileserver`
+    2. Then you will be required to set up username and password, the configuration will be stored in configuration directory you assigned in step i.
+2. Get your user id
+    ```shell
+    ./main --get-id
+    ```
+    1. If you want to provide your uuid to others for file transaction, you may get your user uuid through this command.
+3. Upload file
+    ```shell
+    ./main --upload --user <user_uuid> <filepath>
+    ```
+    1. <user_uuid> is the receiver's user uuid, while filepath is the path of the file you want to send.
+4. Download file
+    ```shell
+    ./main --download
+    ```
+    1. This command will show you all transactions that you receive, and you may enter the transaction uuid to retrieve the file.
