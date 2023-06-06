@@ -40,16 +40,11 @@ class DuplicateUsername(Exception):
     """
 
 
-class ProblemTitleExist(Exception):
-    """
-    Problem title is duplicate
-    """
-
-
 class IllegalInput(Exception):
     """
     Input is not legal
     """
+
 
 class InternalServerError(Exception):
     """
