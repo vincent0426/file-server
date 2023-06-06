@@ -33,17 +33,6 @@ class JWTConfig:
     login_expire = timedelta(days=float(env_values.get('LOGIN_EXPIRE', '7')))
 
 
-class AMQPConfig:
-    host = env_values.get('AMQP_HOST')
-    port = env_values.get('AMQP_PORT')
-    username = env_values.get('AMQP_USERNAME')
-    password = env_values.get('AMQP_PASSWORD')
-
-
-AMQP_PUBLISH_QUEUE = env_values.get('AMQP_PUBLISH_QUEUE')
-AMQP_CONSUME_QUEUE = env_values.get('AMQP_CONSUME_QUEUE')
-
-
 class S3Config:
     endpoint = env_values.get('S3_ENDPOINT')
     access_key = env_values.get('S3_ACCESS_KEY')
@@ -57,5 +46,4 @@ class S3Config:
 db_config = DBConfig()
 app_config = AppConfig()
 jwt_config = JWTConfig()
-amqp_config = AMQPConfig()
 s3_config = S3Config()
